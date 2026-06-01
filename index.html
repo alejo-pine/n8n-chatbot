@@ -50,6 +50,129 @@
         </div>
     </div>
 
+    <!-- Chat Widget -->
+    <div id="chatWidget" class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+
+        <div id="chatPanel" class="hidden w-80 bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 flex flex-col overflow-hidden" style="height:460px">
+            <div class="bg-indigo-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 bg-emerald-400 rounded-full"></div>
+                    <span class="text-white font-semibold text-sm">Agente de Soporte IA</span>
+                </div>
+                <button id="closeChat" class="text-white/60 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <div class="flex">
+                    <div class="bg-slate-700 rounded-2xl rounded-tl-sm px-3 py-2 text-sm text-slate-200 max-w-xs leading-relaxed">
+                        Hola, describe tu incidente y lo analizo para ti.
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3 border-t border-slate-700 flex-shrink-0">
+                <div class="flex gap-2">
+                    <input
+                        id="chatInput"
+                        type="text"
+                        placeholder="Escribe tu incidente..."
+                        class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <button
+                        id="sendChatMsg"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-xl transition-colors flex-shrink-0"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <button id="chatToggle" class="bg-indigo-600 hover:bg-indigo-500 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110">
+            <svg id="iconChat" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            <svg id="iconClose" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        // Chat widget
+        const chatPanel    = document.getElementById('chatPanel');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput    = document.getElementById('chatInput');
+        const iconChat     = document.getElementById('iconChat');
+        const iconClose    = document.getElementById('iconClose');
+
+        function toggleChat() {
+            chatPanel.classList.toggle('hidden');
+            iconChat.classList.toggle('hidden');
+            iconClose.classList.toggle('hidden');
+        }
+
+        document.getElementById('chatToggle').addEventListener('click', toggleChat);
+        document.getElementById('closeChat').addEventListener('click', toggleChat);
+
+        function addBubble(text, isUser) {
+            const row = document.createElement('div');
+            row.className = isUser ? 'flex justify-end' : 'flex';
+            const bubble = document.createElement('div');
+            bubble.className = isUser
+                ? 'bg-indigo-600 rounded-2xl rounded-tr-sm px-3 py-2 text-sm text-white max-w-xs leading-relaxed'
+                : 'bg-slate-700 rounded-2xl rounded-tl-sm px-3 py-2 text-sm text-slate-200 max-w-xs leading-relaxed';
+            bubble.textContent = text;
+            row.appendChild(bubble);
+            chatMessages.appendChild(row);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addTyping() {
+            const row = document.createElement('div');
+            row.id = 'typing';
+            row.className = 'flex';
+            row.innerHTML = '<div class="bg-slate-700 rounded-2xl rounded-tl-sm px-3 py-2 text-sm text-slate-400">Analizando...</div>';
+            chatMessages.appendChild(row);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendChat() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+            chatInput.value = '';
+            addBubble(text, true);
+            addTyping();
+            document.getElementById('sendChatMsg').disabled = true;
+
+            try {
+                const res = await fetch(CONFIG.N8N_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mensaje_estudiante: text })
+                });
+                const data = await res.json();
+                document.getElementById('typing')?.remove();
+                const reply = data.output || data.response_ai_agent || data.message || 'Incidente recibido y procesado correctamente.';
+                addBubble(reply, false);
+            } catch {
+                document.getElementById('typing')?.remove();
+                addBubble('Error al conectar con el servidor. Intenta de nuevo.', false);
+            } finally {
+                document.getElementById('sendChatMsg').disabled = false;
+            }
+        }
+
+        document.getElementById('sendChatMsg').addEventListener('click', sendChat);
+        chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+    </script>
+
     <script>
         document.getElementById('ticketForm').addEventListener('submit', async function(e) {
             e.preventDefault(); // Evita que la página se recargue
