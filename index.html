@@ -32,8 +32,20 @@
                 ></textarea>
             </div>
 
-            <button 
-                type="submit" 
+            <div>
+                <label for="formRole" class="block text-sm font-medium text-slate-300 mb-2">Rol:</label>
+                <select
+                    id="formRole"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                >
+                    <option value="estudiante">Estudiante</option>
+                    <option value="docente">Docente</option>
+                    <option value="administrativo">Administrativo</option>
+                </select>
+            </div>
+
+            <button
+                type="submit"
                 id="btnEnviar"
                 class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 px-4 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
             >
@@ -64,6 +76,18 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
+            </div>
+
+            <div class="px-4 pt-3 pb-2 border-b border-slate-700 flex items-center gap-2 flex-shrink-0">
+                <label for="chatRole" class="text-xs text-slate-400">Rol:</label>
+                <select
+                    id="chatRole"
+                    class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                    <option value="estudiante">Estudiante</option>
+                    <option value="docente">Docente</option>
+                    <option value="administrativo">Administrativo</option>
+                </select>
             </div>
 
             <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3">
@@ -109,6 +133,7 @@
         const chatPanel    = document.getElementById('chatPanel');
         const chatMessages = document.getElementById('chatMessages');
         const chatInput    = document.getElementById('chatInput');
+        const chatRole     = document.getElementById('chatRole');
         const iconChat     = document.getElementById('iconChat');
         const iconClose    = document.getElementById('iconClose');
 
@@ -155,7 +180,7 @@
                 const res = await fetch(CONFIG.N8N_WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mensaje_estudiante: text })
+                    body: JSON.stringify({ mensaje_estudiante: text, rol: chatRole.value })
                 });
                 const data = await res.json();
                 document.getElementById('typing')?.remove();
@@ -201,7 +226,8 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        mensaje_estudiante: mensajeTexto
+                        mensaje_estudiante: mensajeTexto,
+                        rol: document.getElementById('formRole').value
                     })
                 });
 
